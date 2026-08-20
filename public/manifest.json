@@ -1,0 +1,16 @@
+{
+  "name": "Chatyy",
+  "short_name": "Chatyy",
+  "description": "Real-time ephemeral chat and self-destructing secret vault",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#4338ca",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
