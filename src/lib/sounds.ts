@@ -148,6 +148,35 @@ class SoundManager {
       // Audio playback blocked
     }
   }
+
+  // Soft low thud for incorrect password attempts
+  public playError() {
+    if (this.isMuted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(70, now + 0.12);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.12);
+      this.scheduleSuspend();
+    } catch {
+      // Audio playback blocked
+    }
+  }
 }
 
 export const soundManager = new SoundManager();

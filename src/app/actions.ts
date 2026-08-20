@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import {
   addStoredMessage,
   clearStoredMessages,
@@ -30,13 +31,31 @@ export async function clearMessagesAction(): Promise<{ success: boolean }> {
   return { success: true };
 }
 
+const STEALTH_SALT = "chatyy_stealth_v1";
+
 export async function checkStealthStatusAction(): Promise<{
   requiresPassword: boolean;
+  passwordHash?: string;
+  salt?: string;
+  passwordLength?: number;
 }> {
   const secret =
     process.env.CHAT_PASSWORD || process.env.NEXT_PUBLIC_CHAT_PASSWORD;
+  if (!secret || !secret.trim()) {
+    return { requiresPassword: false };
+  }
+
+  const cleanSecret = secret.trim().toLowerCase();
+  const passwordHash = crypto
+    .createHash("sha256")
+    .update(STEALTH_SALT + cleanSecret)
+    .digest("hex");
+
   return {
-    requiresPassword: Boolean(secret && secret.trim().length > 0),
+    requiresPassword: true,
+    passwordHash,
+    salt: STEALTH_SALT,
+    passwordLength: cleanSecret.length,
   };
 }
 
