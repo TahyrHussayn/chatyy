@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  checkStealthStatusAction,
+  verifyStealthPasswordAction,
+} from "@/app/actions";
 import { soundManager } from "@/lib/sounds";
 
 interface StealthLockProps {
@@ -8,10 +12,7 @@ interface StealthLockProps {
   password?: string;
 }
 
-export function StealthLock({
-  children,
-  password = process.env.NEXT_PUBLIC_CHAT_PASSWORD,
-}: StealthLockProps) {
+export function StealthLock({ children, password }: StealthLockProps) {
   const [isLocked, setIsLocked] = useState(true);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [keyPulse, setKeyPulse] = useState(false);
@@ -28,8 +29,22 @@ export function StealthLock({
         'input[type="text"]',
       ) as HTMLInputElement | null;
       input?.focus();
+      return;
     }
-  }, []);
+
+    if (password !== undefined) {
+      if (!password || password.trim().length === 0) {
+        setIsLocked(false);
+      }
+      return;
+    }
+
+    checkStealthStatusAction().then(({ requiresPassword }) => {
+      if (!requiresPassword) {
+        setIsLocked(false);
+      }
+    });
+  }, [password]);
 
   useEffect(() => {
     // If already unlocked, do not attach locked keyboard listeners or blur inputs
@@ -46,9 +61,36 @@ export function StealthLock({
       document.activeElement.blur();
     }
 
+    const unlockSuccess = () => {
+      // Play satisfying mechanical unlock chime
+      soundManager.playUnlock();
+
+      // Trigger smooth simultaneous unlock transition
+      setIsUnlocking(true);
+      bufferRef.current = "";
+
+      // Transition completes after 700ms
+      setTimeout(() => {
+        setIsLocked(false);
+        setIsUnlocking(false);
+        sessionStorage.setItem("chatyy_unlocked", "true");
+        document.documentElement.classList.add("is-unlocked");
+
+        // Focus chat input after unlock
+        const input = document.querySelector(
+          'input[type="text"]',
+        ) as HTMLInputElement | null;
+        if (input) {
+          input.value = "";
+          input.focus();
+        }
+      }, 700);
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Allow browser system shortcuts
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isUnlocking) return;
 
       // Prevent keystrokes from reaching background form fields
       e.preventDefault();
@@ -78,39 +120,21 @@ export function StealthLock({
         pulseTimeoutRef.current = setTimeout(() => setKeyPulse(false), 140);
 
         // Append to rolling buffer
-        const maxBufferLen = password ? Math.max(password.length * 2, 20) : 20;
-        bufferRef.current = (bufferRef.current + e.key).slice(-maxBufferLen);
+        bufferRef.current = (bufferRef.current + e.key).slice(-40);
+        const currentBuffer = bufferRef.current;
 
-        // Only attempt match if a password has been explicitly configured
+        // Verify locally if explicit password prop was passed, else verify securely on server
         if (password && password.trim().length > 0) {
           const target = password.trim().toLowerCase();
-          const currentBuffer = bufferRef.current.toLowerCase();
-
-          if (currentBuffer.endsWith(target)) {
-            // Play satisfying mechanical unlock chime
-            soundManager.playUnlock();
-
-            // Trigger smooth simultaneous unlock transition
-            setIsUnlocking(true);
-            bufferRef.current = "";
-
-            // Transition completes after 700ms
-            setTimeout(() => {
-              setIsLocked(false);
-              setIsUnlocking(false);
-              sessionStorage.setItem("chatyy_unlocked", "true");
-              document.documentElement.classList.add("is-unlocked");
-
-              // Focus chat input after unlock
-              const input = document.querySelector(
-                'input[type="text"]',
-              ) as HTMLInputElement | null;
-              if (input) {
-                input.value = "";
-                input.focus();
-              }
-            }, 700);
+          if (currentBuffer.toLowerCase().endsWith(target)) {
+            unlockSuccess();
           }
+        } else if (password === undefined) {
+          verifyStealthPasswordAction(currentBuffer).then((res) => {
+            if (res.success && !isUnlocking) {
+              unlockSuccess();
+            }
+          });
         }
       }
     };
@@ -120,7 +144,7 @@ export function StealthLock({
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
     };
-  }, [isLocked, password]);
+  }, [isLocked, password, isUnlocking]);
 
   const handleLock = () => {
     sessionStorage.removeItem("chatyy_unlocked");

@@ -34,7 +34,7 @@ cp .env.example .env.local
 
 Set your stealth lock password:
 ```env
-NEXT_PUBLIC_CHAT_PASSWORD=your_secret_password
+CHAT_PASSWORD=your_secret_password
 ```
 
 ### 3. Run Development Server
@@ -51,7 +51,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_CHAT_PASSWORD` | Secret password to unlock the stealth lock | Unlocked if empty |
+| `CHAT_PASSWORD` | Secret password to unlock the stealth lock (Server-side, private) | Unlocked if empty |
 | `NEXT_PUBLIC_APP_URL` | Public production domain (used for SEO & OpenGraph) | `VERCEL_URL` / `localhost:3000` |
 | `KV_REST_API_URL` | Vercel KV REST API URL (for `/secret` vault) | In-memory fallback |
 | `KV_REST_API_TOKEN` | Vercel KV REST API Token | In-memory fallback |
@@ -63,7 +63,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 1. Push your repository to GitHub.
 2. Import the repository into [Vercel](https://vercel.com).
 3. (Optional for persistent vault) In your project dashboard, navigate to **Storage** $\rightarrow$ **Create Database** $\rightarrow$ **KV** and connect it to your project.
-4. Add `NEXT_PUBLIC_CHAT_PASSWORD` in **Settings** $\rightarrow$ **Environment Variables**.
+4. Add `CHAT_PASSWORD` in **Settings** $\rightarrow$ **Environment Variables**.
 5. Deploy!
 
 ---
